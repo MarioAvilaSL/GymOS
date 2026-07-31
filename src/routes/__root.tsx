@@ -87,8 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "GymOS — Gestión integral para gimnasios" },
       {
         property: "og:description",
-        content:
-          "Membresías, control de acceso QR, socios y métricas en una sola plataforma.",
+        content: "Membresías, control de acceso QR, socios y métricas en una sola plataforma.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

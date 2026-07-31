@@ -15,8 +15,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCheckinRouteImport } from './routes/_authenticated/checkin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as AuthenticatedRoutinesRouteImport } from './routes/_authenticated/routines'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as PortalDashboardRouteImport } from './routes/portal/dashboard'
 import { Route as PortalLoginRouteImport } from './routes/portal/login'
+import { Route as PortalRoutinesRouteImport } from './routes/portal/routines'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,6 +50,16 @@ const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRoutinesRoute = AuthenticatedRoutinesRouteImport.update({
+  id: '/routines',
+  path: '/routines',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const PortalDashboardRoute = PortalDashboardRouteImport.update({
   id: '/portal/dashboard',
   path: '/portal/dashboard',
@@ -57,6 +70,11 @@ const PortalLoginRoute = PortalLoginRouteImport.update({
   path: '/portal/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoutinesRoute = PortalRoutinesRouteImport.update({
+  id: '/portal/routines',
+  path: '/portal/routines',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -64,8 +82,11 @@ export interface FileRoutesByFullPath {
   '/checkin': typeof AuthenticatedCheckinRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/routines': typeof AuthenticatedRoutinesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/portal/dashboard': typeof PortalDashboardRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/routines': typeof PortalRoutinesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -73,8 +94,11 @@ export interface FileRoutesByTo {
   '/checkin': typeof AuthenticatedCheckinRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/routines': typeof AuthenticatedRoutinesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/portal/dashboard': typeof PortalDashboardRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/routines': typeof PortalRoutinesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -84,8 +108,11 @@ export interface FileRoutesById {
   '/_authenticated/checkin': typeof AuthenticatedCheckinRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
+  '/_authenticated/routines': typeof AuthenticatedRoutinesRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/portal/dashboard': typeof PortalDashboardRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/routines': typeof PortalRoutinesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,8 +122,11 @@ export interface FileRouteTypes {
     | '/checkin'
     | '/dashboard'
     | '/members'
+    | '/routines'
+    | '/settings'
     | '/portal/dashboard'
     | '/portal/login'
+    | '/portal/routines'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -104,8 +134,11 @@ export interface FileRouteTypes {
     | '/checkin'
     | '/dashboard'
     | '/members'
+    | '/routines'
+    | '/settings'
     | '/portal/dashboard'
     | '/portal/login'
+    | '/portal/routines'
   id:
     | '__root__'
     | '/'
@@ -114,8 +147,11 @@ export interface FileRouteTypes {
     | '/_authenticated/checkin'
     | '/_authenticated/dashboard'
     | '/_authenticated/members'
+    | '/_authenticated/routines'
+    | '/_authenticated/settings'
     | '/portal/dashboard'
     | '/portal/login'
+    | '/portal/routines'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -124,6 +160,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PortalDashboardRoute: typeof PortalDashboardRoute
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalRoutinesRoute: typeof PortalRoutinesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -170,6 +207,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMembersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/routines': {
+      id: '/_authenticated/routines'
+      path: '/routines'
+      fullPath: '/routines'
+      preLoaderRoute: typeof AuthenticatedRoutinesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/portal/dashboard': {
       id: '/portal/dashboard'
       path: '/portal/dashboard'
@@ -184,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/routines': {
+      id: '/portal/routines'
+      path: '/portal/routines'
+      fullPath: '/portal/routines'
+      preLoaderRoute: typeof PortalRoutinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -191,12 +249,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCheckinRoute: typeof AuthenticatedCheckinRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
+  AuthenticatedRoutinesRoute: typeof AuthenticatedRoutinesRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCheckinRoute: AuthenticatedCheckinRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
+  AuthenticatedRoutinesRoute: AuthenticatedRoutinesRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -208,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PortalDashboardRoute: PortalDashboardRoute,
   PortalLoginRoute: PortalLoginRoute,
+  PortalRoutinesRoute: PortalRoutinesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

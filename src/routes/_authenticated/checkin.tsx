@@ -4,9 +4,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { checkInByToken, checkInByFace } from "@/lib/members.functions";
+import { usePageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle2,
@@ -16,6 +18,7 @@ import {
   CameraOff,
   Keyboard,
   ScanFace,
+  QrCode,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/checkin")({
@@ -24,10 +27,10 @@ export const Route = createFileRoute("/_authenticated/checkin")({
 });
 
 type CheckInResult =
-  | Awaited<ReturnType<typeof checkInByToken>>
-  | Awaited<ReturnType<typeof checkInByFace>>;
+  Awaited<ReturnType<typeof checkInByToken>> | Awaited<ReturnType<typeof checkInByFace>>;
 
 function CheckinPage() {
+  usePageTitle("Check-in");
   const [token, setToken] = useState("");
   const [last, setLast] = useState<CheckInResult | null>(null);
   const qc = useQueryClient();
@@ -85,16 +88,15 @@ function CheckinPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Check-in</h1>
-        <p className="text-sm text-muted-foreground">
-          Escanea el QR del socio con la webcam, usa el reconocimiento facial o valida el token
-          manualmente.
+        <h1 className="text-4xl font-bold tracking-tight">Check-in</h1>
+        <p className="mt-1 text-muted-foreground">
+          Escanea el QR del socio, usa reconocimiento facial o ingresa el token manualmente.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Validar acceso</CardTitle>
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Validar acceso</CardTitle>
           <CardDescription>
             Alterna entre escáner por cámara, reconocimiento facial y token manual.
           </CardDescription>
@@ -103,13 +105,13 @@ function CheckinPage() {
           <Tabs defaultValue="scanner" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="scanner" className="gap-2">
-                <Camera className="h-4 w-4" /> Escáner QR
+                <Camera className="h-4 w-4" /> QR
               </TabsTrigger>
               <TabsTrigger value="face" className="gap-2">
                 <ScanFace className="h-4 w-4" /> Rostro
               </TabsTrigger>
               <TabsTrigger value="manual" className="gap-2">
-                <Keyboard className="h-4 w-4" /> Token manual
+                <Keyboard className="h-4 w-4" /> Manual
               </TabsTrigger>
             </TabsList>
 
@@ -123,14 +125,18 @@ function CheckinPage() {
 
             <TabsContent value="manual" className="mt-4">
               <form onSubmit={onSubmit} className="flex gap-2">
-                <Input
-                  autoFocus
-                  placeholder="Token del QR o código de acceso"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                />
+                <div className="relative flex-1">
+                  <QrCode className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    placeholder="Token QR o código de acceso"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
                 <Button type="submit" disabled={mutation.isPending || !token.trim()}>
-                  {mutation.isPending ? "..." : "Validar"}
+                  {mutation.isPending ? "Validando..." : "Validar"}
                 </Button>
               </form>
             </TabsContent>
@@ -234,33 +240,40 @@ function QrScanner({
 
   return (
     <div className="space-y-3">
-      <div className="relative overflow-hidden rounded-lg border border-border bg-muted/40">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-muted/40">
         <div
           id={containerId}
           className="aspect-square w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
         />
         {!active && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 p-6 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/70 p-6 text-center">
             <Camera className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              La cámara está apagada. Enciéndela para escanear.
-            </p>
+            <div>
+              <p className="text-sm font-medium text-foreground">Cámara apagada</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Enciende la cámara para escanear códigos QR.
+              </p>
+            </div>
           </div>
         )}
         {status === "reading" && (
-          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-green-500/90 px-3 py-1 text-xs font-semibold text-white shadow">
+          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg">
             <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            Leyendo…
+            Escaneando QR
+          </div>
+        )}
+        {status === "error" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-destructive/10 p-6 text-center">
+            <p className="text-sm font-medium text-destructive">{error}</p>
           </div>
         )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          {status === "requesting" && "Solicitando permiso de cámara…"}
-          {status === "reading" && "Enfoca el QR dentro del recuadro."}
+          {status === "requesting" && "Solicitando permiso de cámara..."}
+          {status === "reading" && "Enfoca el código QR dentro del recuadro."}
           {status === "idle" && "Se pedirá permiso al encender la cámara."}
-          {status === "error" && <span className="text-destructive">Error: {error}</span>}
         </p>
         {!active ? (
           <Button
@@ -292,14 +305,15 @@ function QrScanner({
 function ResultCard({ result }: { result: CheckInResult }) {
   if (result.result === "no_members_registered") {
     return (
-      <Card className="border-yellow-500/50 bg-yellow-500/5">
+      <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
         <CardContent className="flex items-center gap-4 p-6">
-          <AlertCircle className="h-12 w-12 text-yellow-600" />
+          <div className="rounded-full bg-amber-500/10 p-3">
+            <AlertCircle className="h-8 w-8 text-amber-600" />
+          </div>
           <div>
-            <p className="text-xl font-bold">Sin registros faciales</p>
+            <p className="text-lg font-bold">Sin registros faciales</p>
             <p className="text-sm text-muted-foreground">
-              Aún no hay socios con rostro registrado en el sistema. Registra un rostro en la
-              sección de Socios.
+              Aún no hay socios con rostro registrado. Registra un rostro desde la sección Socios.
             </p>
           </div>
         </CardContent>
@@ -308,44 +322,64 @@ function ResultCard({ result }: { result: CheckInResult }) {
   }
   if (result.result === "ok" && result.member) {
     return (
-      <Card className="border-green-500/50 bg-green-500/5">
+      <Card className="border-emerald-500/30 bg-emerald-500/5 shadow-sm">
         <CardContent className="flex items-center gap-4 p-6">
-          <CheckCircle2 className="h-12 w-12 text-green-600" />
-          <div>
-            <p className="text-xl font-bold">Acceso permitido</p>
+          <div className="rounded-full bg-emerald-500/10 p-3">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-lg font-bold">Acceso permitido</p>
             <p className="text-sm text-muted-foreground">
-              {result.member.full_name} · Plan {result.member.plan} · vence {result.member.end_date}
+              {result.member.full_name} &middot; Plan {result.member.plan} &middot; Vence{" "}
+              {result.member.end_date}
             </p>
           </div>
+          <Badge
+            variant="secondary"
+            className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+          >
+            OK
+          </Badge>
         </CardContent>
       </Card>
     );
   }
   if (result.result === "expired" && result.member) {
     return (
-      <Card className="border-yellow-500/50 bg-yellow-500/5">
+      <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
         <CardContent className="flex items-center gap-4 p-6">
-          <AlertCircle className="h-12 w-12 text-yellow-600" />
-          <div>
-            <p className="text-xl font-bold">Membresía vencida</p>
+          <div className="rounded-full bg-amber-500/10 p-3">
+            <AlertCircle className="h-8 w-8 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-lg font-bold">Membresía vencida</p>
             <p className="text-sm text-muted-foreground">
-              {result.member.full_name} · venció {result.member.end_date}
+              {result.member.full_name} &middot; Venció {result.member.end_date}
             </p>
           </div>
+          <Badge
+            variant="secondary"
+            className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+          >
+            Vencido
+          </Badge>
         </CardContent>
       </Card>
     );
   }
   return (
-    <Card className="border-destructive/50 bg-destructive/5">
+    <Card className="border-destructive/30 bg-destructive/5 shadow-sm">
       <CardContent className="flex items-center gap-4 p-6">
-        <XCircle className="h-12 w-12 text-destructive" />
-        <div>
-          <p className="text-xl font-bold">Error de validación</p>
+        <div className="rounded-full bg-destructive/10 p-3">
+          <XCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <div className="flex-1">
+          <p className="text-lg font-bold">Error de validación</p>
           <p className="text-sm text-muted-foreground">
-            El código escaneado no corresponde a un socio. Verifica el QR.
+            El código ingresado no corresponde a un socio activo.
           </p>
         </div>
+        <Badge variant="destructive">No encontrado</Badge>
       </CardContent>
     </Card>
   );
@@ -401,7 +435,6 @@ function FaceScanner({
         const faceapi = await import("@vladmandic/face-api");
         if (cancelled) return;
 
-        // Cargar modelos si es necesario
         await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
         await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
         await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
@@ -453,23 +486,18 @@ function FaceScanner({
               const dims = api.matchDimensions(canvas, video, true);
               const resized = api.resizeResults(detection, dims);
 
-              // Dibujar un marco estilizado sobre la cara detectada
               const box = resized.detection.box;
 
-              // Dibujar marco verde/azul pulsante
-              ctx.strokeStyle = "#10b981"; // Emerald-500
+              ctx.strokeStyle = "#10b981";
               ctx.lineWidth = 3;
               ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-              // Texto
               ctx.fillStyle = "#10b981";
               ctx.font = "14px Inter, sans-serif";
               ctx.fillText("Validando socio...", box.x, box.y - 10);
 
-              // Evitar mandar peticiones de forma continua si acabamos de mandar una
               const now = Date.now();
               if (now - lastScanRef.current > 3000) {
-                // 3 segundos entre peticiones
                 lastScanRef.current = now;
                 onDetectedRef.current(Array.from(detection.descriptor));
               }
@@ -491,7 +519,7 @@ function FaceScanner({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-black">
+      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
         <video
           ref={videoRef}
           className="h-full w-full object-cover transform -scale-x-100"
@@ -506,11 +534,14 @@ function FaceScanner({
         />
 
         {!active && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 p-6 text-center">
-            <ScanFace className="h-10 w-10 text-muted-foreground animate-pulse" />
-            <p className="text-sm text-muted-foreground">
-              Reconocimiento facial desactivado. Enciéndelo para escanear rostros.
-            </p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/70 p-6 text-center">
+            <ScanFace className="h-10 w-10 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Reconocimiento facial apagado</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Enciende la cámara para identificar socios por su rostro.
+              </p>
+            </div>
           </div>
         )}
 
@@ -522,19 +553,24 @@ function FaceScanner({
         )}
 
         {status === "reading" && (
-          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white shadow">
+          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg">
             <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            Escaneando rostro…
+            Escaneando rostro
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-destructive/10 p-6 text-center">
+            <p className="text-sm font-medium text-destructive">{error}</p>
           </div>
         )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground font-medium">
-          {status === "loading" && "Cargando inteligencia artificial…"}
-          {status === "reading" && "Sitúate frente a la cámara web."}
+        <p className="text-xs text-muted-foreground">
+          {status === "loading" && "Cargando inteligencia artificial..."}
+          {status === "reading" && "Sitúate frente a la cámara."}
           {status === "idle" && "Se solicitará acceso a la cámara al encender."}
-          {status === "error" && <span className="text-destructive">Error: {error}</span>}
         </p>
         {!active ? (
           <Button

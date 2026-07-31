@@ -81,9 +81,9 @@ export const createMember = createServerFn({ method: "POST" })
     const MAX_ATTEMPTS = 5;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const rows = await query<{ id: string }>(
+        const rows = await query<{ id: string; qr_token: string; access_code: string }>(
           `INSERT INTO members (admin_id, full_name, email, phone, plan, price, start_date, end_date, access_code)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, qr_token, access_code`,
           [
             adminId,
             data.fullName,
@@ -96,7 +96,7 @@ export const createMember = createServerFn({ method: "POST" })
             generateAccessCode(),
           ],
         );
-        return { id: rows[0].id };
+        return { id: rows[0].id, qrToken: rows[0].qr_token, accessCode: rows[0].access_code };
       } catch (err) {
         if (isUniqueViolation(err) && attempt < MAX_ATTEMPTS) continue;
         throw err;
@@ -172,8 +172,17 @@ export const renewMembership = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const adminId = await requireAdminId();
     const { query } = await import("./db.server");
-    const existing = await query<{ end_date: string; plan: string; price: string }>(
-      `SELECT end_date::text, plan, price::text FROM members WHERE id = $1 AND admin_id = $2`,
+    const existing = await query<{
+      end_date: string;
+      plan: string;
+      price: string;
+      full_name: string;
+      qr_token: string;
+      access_code: string;
+      start_date: string;
+    }>(
+      `SELECT end_date::text, plan, price::text, full_name, qr_token, access_code, start_date::text
+       FROM members WHERE id = $1 AND admin_id = $2`,
       [data.id, adminId],
     );
     if (existing.length === 0) throw new Error("Socio no encontrado.");
@@ -185,6 +194,7 @@ export const renewMembership = createServerFn({ method: "POST" })
     const today = new Date(new Date().toDateString());
     const currentEnd = new Date(existing[0].end_date);
     const base = currentEnd > today ? currentEnd : today;
+    const newStartDate = base.toISOString().slice(0, 10);
     base.setMonth(base.getMonth() + months);
     const newEndDate = base.toISOString().slice(0, 10);
 
@@ -195,7 +205,17 @@ export const renewMembership = createServerFn({ method: "POST" })
        RETURNING id, end_date::text`,
       [plan, price, newEndDate, data.id, adminId],
     );
-    return { id: rows[0].id, newEndDate: rows[0].end_date };
+    return {
+      id: rows[0].id,
+      newEndDate: rows[0].end_date,
+      fullName: existing[0].full_name,
+      qrToken: existing[0].qr_token,
+      accessCode: existing[0].access_code,
+      plan,
+      price,
+      startDate: newStartDate,
+      endDate: newEndDate,
+    };
   });
 
 export const checkInByToken = createServerFn({ method: "POST" })
@@ -215,10 +235,11 @@ export const checkInByToken = createServerFn({ method: "POST" })
     const member = rows[0];
     const expired = new Date(member.end_date) < new Date(new Date().toDateString());
     const result = expired ? ("expired" as const) : ("ok" as const);
-    await query(
-      "INSERT INTO checkins (member_id, admin_id, result) VALUES ($1,$2,$3)",
-      [member.id, adminId, result],
-    );
+    await query("INSERT INTO checkins (member_id, admin_id, result) VALUES ($1,$2,$3)", [
+      member.id,
+      adminId,
+      result,
+    ]);
     return { result, member };
   });
 
@@ -234,17 +255,16 @@ export const registerFace = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const adminId = await requireAdminId();
     const { query } = await import("./db.server");
-    await query(
-      "UPDATE members SET face_descriptor = $1 WHERE id = $2 AND admin_id = $3",
-      [JSON.stringify(data.descriptor), data.memberId, adminId],
-    );
+    await query("UPDATE members SET face_descriptor = $1 WHERE id = $2 AND admin_id = $3", [
+      JSON.stringify(data.descriptor),
+      data.memberId,
+      adminId,
+    ]);
     return { success: true };
   });
 
 export const checkInByFace = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
-    z.object({ descriptor: z.array(z.number()) }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ descriptor: z.array(z.number()) }).parse(data))
   .handler(async ({ data }) => {
     const adminId = await requireAdminId();
     const { query } = await import("./db.server");
@@ -262,7 +282,7 @@ export const checkInByFace = createServerFn({ method: "POST" })
       return { result: "no_members_registered" as const, member: null };
     }
 
-    let bestMatch: typeof rows[0] | null = null;
+    let bestMatch: (typeof rows)[0] | null = null;
     let minDistance = Infinity;
     const faceDescriptor = data.descriptor;
 
@@ -298,10 +318,11 @@ export const checkInByFace = createServerFn({ method: "POST" })
     const expired = new Date(member.end_date) < new Date(new Date().toDateString());
     const result = expired ? ("expired" as const) : ("ok" as const);
 
-    await query(
-      "INSERT INTO checkins (member_id, admin_id, result) VALUES ($1,$2,$3)",
-      [member.id, adminId, result],
-    );
+    await query("INSERT INTO checkins (member_id, admin_id, result) VALUES ($1,$2,$3)", [
+      member.id,
+      adminId,
+      result,
+    ]);
 
     return { result, member };
   });

@@ -23,10 +23,9 @@ export const register = createServerFn({ method: "POST" })
       import("bcryptjs"),
     ]);
 
-    const existing = await query<{ id: string }>(
-      "SELECT id FROM admins WHERE email = $1",
-      [data.email.toLowerCase()],
-    );
+    const existing = await query<{ id: string }>("SELECT id FROM admins WHERE email = $1", [
+      data.email.toLowerCase(),
+    ]);
     if (existing.length > 0) {
       throw new Error("Ya existe una cuenta con ese correo.");
     }
@@ -84,9 +83,6 @@ export const getCurrentAdmin = createServerFn({ method: "GET" }).handler(async (
     email: string;
     full_name: string;
     gym_name: string;
-  }>(
-    "SELECT id, email, full_name, gym_name FROM admins WHERE id = $1",
-    [adminId],
-  );
+  }>("SELECT id, email, full_name, gym_name FROM admins WHERE id = $1", [adminId]);
   return rows[0] ?? null;
 });
