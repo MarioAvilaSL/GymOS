@@ -62,3 +62,15 @@ CREATE TABLE IF NOT EXISTS checkins (
 
 CREATE INDEX IF NOT EXISTS idx_checkins_admin_date ON checkins(admin_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_checkins_member ON checkins(member_id);
+
+-- Rutinas predefinidas creadas por el admin (catálogo para que los socios elijan)
+CREATE TABLE IF NOT EXISTS preset_workouts (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id   UUID NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+  title      TEXT NOT NULL,
+  summary    TEXT,
+  blocks     JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_preset_workouts_admin ON preset_workouts(admin_id);

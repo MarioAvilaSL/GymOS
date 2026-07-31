@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,6 +8,7 @@
 >
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
+
 <!-- LOVABLE:END -->
 
 ## Project
@@ -15,26 +17,28 @@ GymOS — gym management SaaS prototype (Spanish UI). TanStack Start + React 19 
 
 ## Commands
 
-| Task | Command |
-| --- | --- |
-| Install | `bun install` |
-| Dev server | `bun run dev` (opens http://localhost:8080) |
-| Build | `bun run build` |
-| Build (dev mode) | `bun run build:dev` |
-| Lint | `bun run lint` (ESLint 9 flat config) |
-| Format | `bun run format` (Prettier) |
+| Task             | Command                                     |
+| ---------------- | ------------------------------------------- |
+| Install          | `bun install`                               |
+| Dev server       | `bun run dev` (opens http://localhost:8080) |
+| Build            | `bun run build`                             |
+| Build (dev mode) | `bun run build:dev`                         |
+| Lint             | `bun run lint` (ESLint 9 flat config)       |
+| Format           | `bun run format` (Prettier)                 |
 
 No typecheck or test scripts are configured. `bun run lint` is the primary verification step.
 
 ## Architecture
 
 - **File-based routing** in `src/routes/`. `routeTree.gen.ts` is auto-generated — never edit.
-- **Server functions** use `createServerFn` from `@tanstack/react-start`. Place in `src/lib/*.functions.ts`.
+- **Server functions** use `createServerFn` from `@tanstack/react-start`. Place in `src/lib/*.functions.ts`. They dynamically `import()` `.server.ts` modules (lazy pattern) and never import them statically.
 - **Server-only code** uses `.server.ts` suffix (e.g. `db.server.ts`, `session.server.ts`). Do NOT import these from client components.
 - **Two session types**: admin session (`session.server.ts`, cookie `gymos_session`) and member/client session (`client-session.server.ts`, cookie `gymos_member_session`).
-- **Database**: PostgreSQL via `pg` Pool singleton in `src/lib/db.server.ts`. Schema at `db/schema.sql`, migrations in `db/migrations/`.
+- **Database**: PostgreSQL via `pg` Pool singleton in `src/lib/db.server.ts`. Use the `query<T>(text, params)` helper for all DB access. Schema at `db/schema.sql`, migrations in `db/migrations/` — apply migrations manually after initial schema.
 - **SSR entry**: `src/server.ts` wraps TanStack Start's server entry with h3 error normalization.
+- **Request middleware**: `src/start.ts` exports `startInstance` via `createStart()` which wires a catch-all error middleware around every server function.
 - **Vite config**: `@lovable.dev/vite-tanstack-config` handles all plugins (React, Tailwind, Nitro, path aliases). Do NOT add duplicate plugins.
+- **All authenticated/portal routes** set `ssr: false` in their route definition. Auth is enforced via `beforeLoad` that calls a server function (`getCurrentAdmin` / `getCurrentMember`) and `throw redirect()` on failure.
 
 ## Key conventions
 
@@ -44,6 +48,8 @@ No typecheck or test scripts are configured. `bun run lint` is the primary verif
 - Prettier: 100 char width, double quotes, trailing commas, semicolons.
 - ESLint forbids `server-only` import — use `.server.ts` suffix or `@tanstack/react-start/server-only` instead.
 - Auth routes live under `src/routes/_authenticated/` (layout route with sidebar). Portal routes under `src/routes/portal/`.
+- Server functions gate admin actions via a shared `requireAdminId()` helper that reads the session and throws if unauthenticated.
+- shadcn/ui registry paths in `components.json`: aliases `@/components`, `@/lib`, `@/hooks`, `@/components/ui`.
 
 ## Gotchas
 

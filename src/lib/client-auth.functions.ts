@@ -64,6 +64,62 @@ export const getCurrentMember = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const createMyWorkout = createServerFn({ method: "POST" })
+  .validator((d: unknown) =>
+    z
+      .object({
+        title: z.string().trim().min(1).max(120),
+        summary: z.string().trim().max(300).optional().or(z.literal("")),
+        blocks: z
+          .array(
+            z.object({
+              name: z.string().trim().min(1).max(80),
+              exercises: z
+                .array(
+                  z.object({
+                    name: z.string().trim().min(1).max(120),
+                    sets: z.string().trim().max(30).optional().or(z.literal("")),
+                    reps: z.string().trim().max(30).optional().or(z.literal("")),
+                  }),
+                )
+                .min(1)
+                .max(20),
+            }),
+          )
+          .min(1)
+          .max(10),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const session = await readMemberSession();
+    const memberId = session.data.memberId;
+    if (!memberId) throw new Error("No autenticado.");
+    const { query } = await import("./db.server");
+    const [member] = await query<{ admin_id: string }>(
+      "SELECT admin_id FROM members WHERE id = $1",
+      [memberId],
+    );
+    if (!member) throw new Error("Socio no encontrado.");
+    const rows = await query<{ id: string }>(
+      `INSERT INTO workouts (member_id, admin_id, title, summary, blocks)
+       VALUES ($1, $2, $3, $4, $5::jsonb) RETURNING id`,
+      [memberId, member.admin_id, data.title, data.summary || null, JSON.stringify(data.blocks)],
+    );
+    return { id: rows[0].id };
+  });
+
+export const deleteMyWorkout = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const session = await readMemberSession();
+    const memberId = session.data.memberId;
+    if (!memberId) throw new Error("No autenticado.");
+    const { query } = await import("./db.server");
+    await query("DELETE FROM workouts WHERE id = $1 AND member_id = $2", [data.id, memberId]);
+    return { ok: true };
+  });
+
 export interface WorkoutBlock {
   name: string;
   exercises: { name: string; sets?: string; reps?: string; notes?: string }[];

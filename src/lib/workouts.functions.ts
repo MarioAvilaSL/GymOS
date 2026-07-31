@@ -62,13 +62,7 @@ export const createWorkout = createServerFn({ method: "POST" })
     const rows = await query<{ id: string }>(
       `INSERT INTO workouts (member_id, admin_id, title, summary, blocks)
        VALUES ($1,$2,$3,$4,$5::jsonb) RETURNING id`,
-      [
-        data.memberId,
-        adminId,
-        data.title,
-        data.summary || null,
-        JSON.stringify(data.blocks),
-      ],
+      [data.memberId, adminId, data.title, data.summary || null, JSON.stringify(data.blocks)],
     );
     return { id: rows[0].id };
   });
@@ -78,9 +72,6 @@ export const deleteWorkout = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const adminId = await requireAdminId();
     const { query } = await import("./db.server");
-    await query("DELETE FROM workouts WHERE id = $1 AND admin_id = $2", [
-      data.id,
-      adminId,
-    ]);
+    await query("DELETE FROM workouts WHERE id = $1 AND admin_id = $2", [data.id, adminId]);
     return { ok: true };
   });
